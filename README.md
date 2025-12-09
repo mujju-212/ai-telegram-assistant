@@ -75,7 +75,7 @@ An intelligent task management system that uses AI to extract tasks from natural
 
 1. **Clone this repository**
    ```bash
-   git clone https://github.com/yourusername/ai-telegram-assistant.git
+   git clone https://github.com/mujju-212/ai-telegram-assistant.git
    cd ai-telegram-assistant
    ```
 
@@ -324,7 +324,7 @@ Created with ❤️ using:
 
 - 📧 Email: your@email.com
 - 💬 Telegram: @yourusername
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/ai-telegram-assistant/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/mujju-212/ai-telegram-assistant/issues)
 
 ---
 

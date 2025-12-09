@@ -686,4 +686,4 @@ If nothing works:
 
 ---
 
-**Need more help?** Check the [Setup Guide](setup-guide.md) or open a [GitHub Issue](https://github.com/yourusername/ai-telegram-assistant/issues).
+**Need more help?** Check the [Setup Guide](setup-guide.md) or open a [GitHub Issue](https://github.com/mujju-212/ai-telegram-assistant/issues).
