@@ -1,0 +1,215 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "6f19848f-3e31-4b6d-bba5-3ab9c74b0d3e",
+      "name": "Schedule - 7 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -880,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $now.startOf('day').toISO() }}",
+          "timeMax": "={{ $now.endOf('day').toISO() }}"
+        }
+      },
+      "id": "3a84a8f0-4309-4e76-b68b-ff6b6bb65cba",
+      "name": "Get Today's Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -656,
+        32
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "t65YfZxlyg9KLgVk",
+          "name": "Google Calendar account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const events = $input.all();\n\nconst validEvents = events.filter(item => {\n  return item.json && item.json.id && item.json.summary;\n});\n\nconst eventCount = validEvents.length;\n\nif (eventCount === 0) {\n  return [{\n    json: {\n      has_events: false,\n      event_count: 0,\n      events: []\n    }\n  }];\n} else {\n  return [{\n    json: {\n      has_events: true,\n      event_count: eventCount,\n      events: validEvents.map(e => e.json)\n    }\n  }];\n}"
+      },
+      "id": "process-events",
+      "name": "Process Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_events }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "4c664fcb-2b61-41bf-8f2d-3b52c474b70a",
+      "name": "Check If Events Exist",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// Convert to IST\nconst istOptions = { \n  timeZone: 'Asia/Kolkata',\n  weekday: 'long', \n  month: 'long', \n  day: 'numeric' \n};\n\nlet message = '🌅 *Good Morning!*\\n\\n';\nmessage += `📅 *${now.toLocaleDateString('en-US', istOptions)}*\\n\\n`;\nmessage += '🎉 *No events scheduled today!*\\n\\n';\nmessage += 'You have a completely free day! 🆓\\n\\n';\nmessage += '━━━━━━━  ━━━━━━━━\\n\\n';\nmessage += '💡 *Here is what you can do:*\\n';\nmessage += '• Focus on personal projects\\n';\nmessage += '• Catch up on learning\\n';\nmessage += '• Rest and recharge\\n';\nmessage += '• Plan tasks for tomorrow\\n\\n';\nmessage += '━━━━━━━━━━━━━━━━\\n\\n';\nmessage += '📝 *Want to add tasks?*\\n\\n';\nmessage += 'Just message me with:\\n';\nmessage += '• \"Add gym tomorrow at 7 AM\"\\n';\nmessage += '• \"Meeting with John on Friday at 2 PM\"\\n';\nmessage += '• \"Dentist appointment next Monday 3 PM\"\\n\\n';\nmessage += 'I will automatically add them to your calendar! ✨';\n\nreturn [{\n  json: {\n    formatted_message: message\n  }\n}];"
+      },
+      "id": "41082084-0d70-4d70-a181-f2d6f31b8fba",
+      "name": "No Events Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst events = data.events || [];\nconst now = new Date();\n\n// Timezone: Asia/Kolkata (IST = UTC+5:30)\nconst TIMEZONE = 'Asia/Kolkata';\n\nfunction formatTimeIST(dateStr) {\n  const date = new Date(dateStr);\n  return date.toLocaleTimeString('en-US', { \n    timeZone: TIMEZONE,\n    hour: '2-digit', \n    minute: '2-digit',\n    hour12: true \n  });\n}\n\nfunction formatDateIST(date) {\n  return date.toLocaleDateString('en-US', { \n    timeZone: TIMEZONE,\n    weekday: 'long', \n    month: 'long', \n    day: 'numeric' \n  });\n}\n\nfunction getDurationMinutes(startStr, endStr) {\n  const start = new Date(startStr);\n  const end = new Date(endStr);\n  return Math.round((end - start) / (1000 * 60));\n}\n\nlet message = '🌅 *Good Morning!*\\n\\n';\nmessage += `📅 *${formatDateIST(now)}*\\n\\n`;\nmessage += `📊 *Total Events:* ${events.length}\\n\\n`;\nmessage += '━━━━━━━━━━━━━━━━\\n\\n';\n\nevents.forEach((event, index) => {\n  const start = event.start?.dateTime || event.start?.date;\n  const end = event.end?.dateTime || event.end?.date;\n  \n  if (!start) return;\n  \n  const isAllDay = !event.start?.dateTime;\n  \n  let timeStr;\n  let endTimeStr;\n  \n  if (isAllDay) {\n    timeStr = 'All Day';\n  } else {\n    timeStr = formatTimeIST(start);\n    endTimeStr = formatTimeIST(end);\n  }\n  \n  const duration = isAllDay ? 0 : getDurationMinutes(start, end);\n  \n  let emoji = '📌';\n  const summary = (event.summary || 'Untitled').toLowerCase();\n  if (summary.includes('gym') || summary.includes('workout')) emoji = '💪';\n  else if (summary.includes('meeting')) emoji = '🏢';\n  else if (summary.includes('call')) emoji = '📞';\n  else if (summary.includes('lunch') || summary.includes('coffee')) emoji = '☕';\n  else if (summary.includes('doctor') || summary.includes('dentist')) emoji = '🏥';\n  else if (summary.includes('learning') || summary.includes('study')) emoji = '📚';\n  else if (summary.includes('birthday')) emoji = '🎂';\n  else if (summary.includes('project')) emoji = '🏢';\n  \n  message += `${index + 1}. ${emoji} *${event.summary || 'Untitled Event'}*\\n`;\n  \n  if (isAllDay) {\n    message += `   🕐 All Day\\n`;\n  } else {\n    message += `   🕐 ${timeStr} - ${endTimeStr}\\n`;\n    message += `   ⏱️ Duration: ${duration} min\\n`;\n  }\n  \n  if (event.location) {\n    message += `   📍 ${event.location}\\n`;\n  }\n  \n  if (event.description) {\n    if (event.description.includes('Priority: High')) {\n      message += `   🔴 Priority: HIGH\\n`;\n    } else if (event.description.includes('Priority: Medium')) {\n      message += `   🟡 Priority: MEDIUM\\n`;\n    } else if (event.description.includes('Priority: Low')) {\n      message += `   🟢 Priority: LOW\\n`;\n    }\n    \n    if (event.description.includes('Category:')) {\n      const categoryMatch = event.description.match(/Category: (\\w+)/);\n      if (categoryMatch) {\n        message += `   🏷️ Category: ${categoryMatch[1]}\\n`;\n      }\n    }\n  }\n  \n  message += '\\n';\n});\n\nmessage += '━━━━━━━━━━━━━━━━\\n\\n';\nmessage += '💪 *Have a productive day!*\\n\\n';\nmessage += '💡 Message me anytime to add more tasks!';\n\nreturn [{\n  json: {\n    formatted_message: message\n  }\n}];"
+      },
+      "id": "f4423e26-0977-4dba-8f6f-ecde064265be",
+      "name": "Format Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "5162622954",
+        "text": "={{ $json.formatted_message }}",
+        "additionalFields": {}
+      },
+      "id": "06c7c247-f540-42ec-92a8-ed38f12b6766",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        32
+      ],
+      "webhookId": "db206f06-3535-498c-9c8b-3aa13cfdaa6b",
+      "credentials": {
+        "telegramApi": {
+          "id": "YUeHZRoT1FNhknSe",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule - 7 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Today's Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today's Events": {
+      "main": [
+        [
+          {
+            "node": "Process Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Events": {
+      "main": [
+        [
+          {
+            "node": "Check If Events Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Events Exist": {
+      "main": [
+        [
+          {
+            "node": "Format Events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Events Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Events Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Events": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f1e78ca56b42d00d46a1592bf842199db4e6d375267c83a2ceb388f4e798157f"
+  }
+}

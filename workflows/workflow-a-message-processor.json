@@ -1,0 +1,330 @@
+{
+  "name": "Telegram Message Processor - FINAL WORKING",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "0268bdcb-3412-4e89-83c8-5f1ece1b046f",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "YUeHZRoT1FNhknSe",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "2df12d85-0804-4645-8367-180ef118b4c5",
+      "name": "Filter Text Messages Only",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.deepseek.com/v1/chat/completions",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-401fbd42cf00493b8c28db07f3027460"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"deepseek-chat\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a task extraction AI. Current date: {{ $now.toFormat('yyyy-MM-dd') }} ({{ $now.toFormat('EEEE') }}). Extract ALL tasks from the user's message and return a JSON array. For each task, determine: task_name, date (YYYY-MM-DD format), time (HH:MM in 24hr format), duration_minutes (estimate if not specified, default 60), priority (High/Medium/Low), category (Work/Personal/Health/Learning/Home/Family). Return format: {tasks: [{task_name, date, time, duration_minutes, priority, category}]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.message.text }}\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 500,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {}
+      },
+      "id": "58c069b1-d8a8-415f-9d44-62d1acb1ea0b",
+      "name": "DeepSeek - Extract Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst telegramData = $('Telegram Trigger').first().json;\n\nlet contentStr = null;\n\nif (response?.choices?.[0]?.message?.content) {\n  contentStr = response.choices[0].message.content;\n} else if (response?.data?.choices?.[0]?.message?.content) {\n  contentStr = response.data.choices[0].message.content;\n} else if (response?.body?.choices?.[0]?.message?.content) {\n  contentStr = response.body.choices[0].message.content;\n} else if (typeof response === 'string') {\n  contentStr = response;\n}\n\nif (!contentStr) {\n  return [{\n    json: {\n      has_tasks: false,\n      original_message: telegramData.message.text,\n      chat_id: telegramData.message.chat.id\n    }\n  }];\n}\n\nlet parsed;\ntry {\n  contentStr = contentStr.trim();\n  if (contentStr.startsWith('```json')) {\n    contentStr = contentStr.replace(/```json\\n?/g, '').replace(/```\\n?/g, '');\n  }\n  if (contentStr.startsWith('```')) {\n    contentStr = contentStr.replace(/```\\n?/g, '');\n  }\n  parsed = JSON.parse(contentStr);\n} catch (e) {\n  return [{\n    json: {\n      has_tasks: false,\n      error: 'JSON parse failed: ' + e.message,\n      original_message: telegramData.message.text,\n      chat_id: telegramData.message.chat.id\n    }\n  }];\n}\n\nconst tasks = parsed?.tasks || parsed?.task || [];\nconst taskArray = Array.isArray(tasks) ? tasks : [tasks];\n\nif (!taskArray || taskArray.length === 0 || !taskArray[0]?.task_name) {\n  return [{\n    json: {\n      has_tasks: false,\n      original_message: telegramData.message.text,\n      chat_id: telegramData.message.chat.id\n    }\n  }];\n}\n\nreturn taskArray.map(task => ({\n  json: {\n    has_tasks: true,\n    task_name: task.task_name || task.name || 'Untitled Task',\n    date: task.date || new Date().toISOString().split('T')[0],\n    time: task.time || '12:00',\n    duration_minutes: task.duration_minutes || task.duration || 60,\n    priority: task.priority || 'Medium',\n    category: task.category || 'Work',\n    original_message: telegramData.message.text,\n    chat_id: telegramData.message.chat.id,\n    user_name: telegramData.message.from.first_name || 'User'\n  }\n}));"
+      },
+      "id": "73ca9501-f9f3-4282-92a8-1a3ba7d2cb8e",
+      "name": "Parse and Split Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_tasks }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "35ce0b60-2998-4bd8-af0a-b26d6e7c94ce",
+      "name": "Check If Tasks Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "=Sorry, I couldn't extract any tasks from your message. Please try again with:\n\n\"Add gym today at 7 PM\"\n\"Meeting tomorrow at 2 PM\"\n\"Dentist on Friday at 3 PM\"",
+        "additionalFields": {}
+      },
+      "id": "22033284-bc31-4a06-a34b-eae2ca37663a",
+      "name": "Send Error Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [1340, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "YUeHZRoT1FNhknSe",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const task = $input.first().json;\n\nreturn [{\n  json: {\n    ...task,\n    _stored: true\n  }\n}];"
+      },
+      "id": "c6201e1c-e897-48e6-a3c8-e2d6f01c50d4",
+      "name": "Store Task Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{ $('Store Task Data').first().json.date }}T00:00:00Z",
+          "timeMax": "={{ $('Store Task Data').first().json.date }}T23:59:59Z"
+        }
+      },
+      "id": "1fe41922-4c34-471f-b650-519a3874c453",
+      "name": "Get Calendar Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [1560, 200],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "t65YfZxlyg9KLgVk",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const taskData = $('Store Task Data').first().json;\nconst calendarItems = $('Get Calendar Events').all();\nconst events = calendarItems.map(item => item.json);\n\nconst preferredTime = taskData.time || '12:00';\nconst durationMinutes = taskData.duration_minutes || 60;\n\nfunction parseTime(timeStr) {\n  if (!timeStr) return 12 * 60;\n  const parts = timeStr.split(':');\n  const hours = parseInt(parts[0]) || 0;\n  const minutes = parseInt(parts[1]) || 0;\n  return hours * 60 + minutes;\n}\n\nfunction minutesToTime(minutes) {\n  const hours = Math.floor(minutes / 60) % 24;\n  const mins = minutes % 60;\n  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;\n}\n\nfunction isSlotAvailable(startMinutes, endMinutes, events, taskDate) {\n  for (const event of events) {\n    if (!event.start || !event.end) continue;\n    \n    const eventStart = new Date(event.start.dateTime || event.start.date);\n    const eventEnd = new Date(event.end.dateTime || event.end.date);\n    const eventDateStr = eventStart.toISOString().split('T')[0];\n    \n    if (eventDateStr !== taskDate) continue;\n    \n    const eventStartMinutes = eventStart.getHours() * 60 + eventStart.getMinutes();\n    const eventEndMinutes = eventEnd.getHours() * 60 + eventEnd.getMinutes();\n    \n    if (startMinutes < eventEndMinutes && endMinutes > eventStartMinutes) {\n      return false;\n    }\n  }\n  return true;\n}\n\nconst preferredStartMinutes = parseTime(preferredTime);\nconst preferredEndMinutes = preferredStartMinutes + durationMinutes;\n\nlet optimalStartMinutes = preferredStartMinutes;\nlet conflictDetected = false;\n\nif (!isSlotAvailable(preferredStartMinutes, preferredEndMinutes, events, taskData.date)) {\n  conflictDetected = true;\n  const workStart = 9 * 60;\n  const workEnd = 18 * 60;\n  \n  for (let startMinutes = workStart; startMinutes <= (workEnd - durationMinutes); startMinutes += 30) {\n    const endMinutes = startMinutes + durationMinutes;\n    if (isSlotAvailable(startMinutes, endMinutes, events, taskData.date)) {\n      optimalStartMinutes = startMinutes;\n      break;\n    }\n  }\n}\n\nconst optimalStartTime = minutesToTime(optimalStartMinutes);\nconst optimalEndTime = minutesToTime(optimalStartMinutes + durationMinutes);\n\nreturn [{\n  json: {\n    task_name: taskData.task_name,\n    date: taskData.date,\n    time: taskData.time,\n    duration_minutes: taskData.duration_minutes,\n    priority: taskData.priority,\n    category: taskData.category,\n    chat_id: taskData.chat_id,\n    user_name: taskData.user_name,\n    original_message: taskData.original_message,\n    optimal_start_time: optimalStartTime,\n    optimal_end_time: optimalEndTime,\n    start_datetime: `${taskData.date}T${optimalStartTime}:00`,\n    end_datetime: `${taskData.date}T${optimalEndTime}:00`,\n    conflict_detected: conflictDetected\n  }\n}];"
+      },
+      "id": "fbed80da-7b13-42d3-aa53-375298215935",
+      "name": "Find Optimal Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "start": "={{ $json.start_datetime }}",
+        "end": "={{ $json.end_datetime }}",
+        "additionalFields": {
+          "description": "=Priority: {{ $json.priority }}\nCategory: {{ $json.category }}\nCreated by AI Assistant via Telegram\nRequested by: {{ $json.user_name }}",
+          "summary": "={{ $json.task_name }}"
+        }
+      },
+      "id": "b33809ec-aa70-40dc-afbc-0b9e57c715f9",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [2000, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "t65YfZxlyg9KLgVk",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const calendarEvent = $input.first().json;\nconst taskData = $('Find Optimal Time').first().json;\n\nreturn [{\n  json: {\n    ...taskData,\n    calendar_link: calendarEvent.htmlLink || '',\n    calendar_event_id: calendarEvent.id || ''\n  }\n}];"
+      },
+      "id": "9b70a8dc-fce5-4c31-a0b0-b4abbc6be04e",
+      "name": "Merge Calendar Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "2c40d73ab97b8018ae73f28e20099d86"
+        },
+        "title": "={{ $json.task_name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "type": "select",
+              "selectValue": "Not Started"
+            },
+            {
+              "key": "Priority|select",
+              "type": "select",
+              "selectValue": "={{ $json.priority }}"
+            },
+            {
+              "key": "Category|select",
+              "type": "select",
+              "selectValue": "={{ $json.category }}"
+            },
+            {
+              "key": "Due Date|date",
+              "type": "date",
+              "date": "={{ $json.start_datetime }}"
+            },
+            {
+              "key": "Duration (min)|number",
+              "type": "number",
+              "numberValue": "={{ $json.duration_minutes }}"
+            },
+            {
+              "key": "Calendar Link|url",
+              "type": "url",
+              "urlValue": "={{ $json.calendar_link }}"
+            },
+            {
+              "key": "Created By|rich_text",
+              "type": "rich_text",
+              "textContent": "AI Assistant (Telegram)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f031cf25-4ab6-4131-8e56-52986c976fe7",
+      "name": "Create Notion Task",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2440, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "St48lBE97Gf5arsj",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const taskData = $('Find Optimal Time').first().json;\nconst notionData = $input.first().json;\n\nconst date = new Date(taskData.start_datetime);\nconst dateStr = date.toLocaleDateString('en-US', { \n  weekday: 'short', \n  month: 'short', \n  day: 'numeric' \n});\nconst timeStr = date.toLocaleTimeString('en-US', { \n  hour: '2-digit', \n  minute: '2-digit', \n  hour12: true \n});\n\nlet emoji = '📌';\nif (taskData.category === 'Work') emoji = '🏢';\nelse if (taskData.category === 'Health') emoji = '💪';\nelse if (taskData.category === 'Learning') emoji = '📚';\nelse if (taskData.category === 'Personal') emoji = '👤';\nelse if (taskData.category === 'Home') emoji = '🏠';\nelse if (taskData.category === 'Family') emoji = '👨‍👩‍👧‍👦';\n\nlet summary = '✅ *Task Added Successfully!*\\n\\n';\nsummary += `${emoji} *${taskData.task_name}*\\n`;\nsummary += `📅 ${dateStr} at ${timeStr}\\n`;\nsummary += `⏱️ ${taskData.duration_minutes} min | ⚡ ${taskData.priority}\\n`;\nsummary += `🏷️ Category: ${taskData.category}\\n`;\n\nif (taskData.conflict_detected) {\n  summary += `\\n⚠️ Time was adjusted to avoid conflict\\n`;\n}\n\nsummary += `\\n━━━━━━━━━━━━━━━━\\n`;\nsummary += `✅ Added to Google Calendar\\n`;\nsummary += `✅ Added to Notion`;\n\nreturn [{\n  json: {\n    summary: summary,\n    chat_id: taskData.chat_id\n  }\n}];"
+      },
+      "id": "b1167f0f-172b-48b6-b1f7-6e85fc1c816d",
+      "name": "Format Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.summary }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "42891056-fa67-463b-9851-34214e23a24e",
+      "name": "Send Telegram Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [2880, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "YUeHZRoT1FNhknSe",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{"node": "Filter Text Messages Only", "type": "main", "index": 0}]]
+    },
+    "Filter Text Messages Only": {
+      "main": [[{"node": "DeepSeek - Extract Tasks", "type": "main", "index": 0}]]
+    },
+    "DeepSeek - Extract Tasks": {
+      "main": [[{"node": "Parse and Split Tasks", "type": "main", "index": 0}]]
+    },
+    "Parse and Split Tasks": {
+      "main": [[{"node": "Check If Tasks Found", "type": "main", "index": 0}]]
+    },
+    "Check If Tasks Found": {
+      "main": [
+        [{"node": "Store Task Data", "type": "main", "index": 0}],
+        [{"node": "Send Error Message", "type": "main", "index": 0}]
+      ]
+    },
+    "Store Task Data": {
+      "main": [[{"node": "Get Calendar Events", "type": "main", "index": 0}]]
+    },
+    "Get Calendar Events": {
+      "main": [[{"node": "Find Optimal Time", "type": "main", "index": 0}]]
+    },
+    "Find Optimal Time": {
+      "main": [[{"node": "Create Calendar Event", "type": "main", "index": 0}]]
+    },
+    "Create Calendar Event": {
+      "main": [[{"node": "Merge Calendar Data", "type": "main", "index": 0}]]
+    },
+    "Merge Calendar Data": {
+      "main": [[{"node": "Create Notion Task", "type": "main", "index": 0}]]
+    },
+    "Create Notion Task": {
+      "main": [[{"node": "Format Confirmation", "type": "main", "index": 0}]]
+    },
+    "Format Confirmation": {
+      "main": [[{"node": "Send Telegram Confirmation", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {}
+}

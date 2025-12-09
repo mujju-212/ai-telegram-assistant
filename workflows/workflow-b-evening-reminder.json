@@ -1,0 +1,45 @@
+{
+  "name": "11 PM Daily Planning Reminder - Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-11pm",
+      "name": "Schedule - 11 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_CHAT_ID",
+        "text": "=📅 *Planning Time!*\n\nWhat's your plan for tomorrow?\n\nJust send me your tasks, for example:\n\n• \"Add gym at 7 AM\"\n• \"Client call at 11 AM\"  \n• \"Dentist on Friday at 3 PM\"\n• \"Team meeting next Monday 10 AM\"\n\nI'll automatically add them to your calendar! 📝✨\n\n━━━━━━━━━━━━━━━━\nYou can also say:\n• \"Show tomorrow's schedule\"\n• \"What do I have on Friday?\"\n• \"Cancel gym tomorrow\""
+      },
+      "id": "send-prompt",
+      "name": "Send Planning Prompt",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [460, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule - 11 PM": {
+      "main": [[{"node": "Send Planning Prompt", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {}
+}

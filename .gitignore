@@ -1,0 +1,128 @@
+# ============================================
+# Environment and Secrets
+# ============================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+google-credentials.json
+
+# ============================================
+# n8n Files
+# ============================================
+.n8n/
+n8n.log
+*.n8n.backup
+
+# ============================================
+# Node.js
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnpm-store/
+
+# ============================================
+# Operating System Files
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ============================================
+# IDEs and Editors
+# ============================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ============================================
+# Logs and Databases
+# ============================================
+logs/
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# ============================================
+# Build and Distribution
+# ============================================
+dist/
+build/
+out/
+*.zip
+*.tar.gz
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+test-results/
+
+# ============================================
+# Documentation (Generated)
+# ============================================
+docs/_build/
+site/
+
+# ============================================
+# Project Specific
+# ============================================
+# Keep workflow JSON files but ignore backups
+workflows/*.backup.json
+workflows/*-old.json
+
+# Keep screenshots folder but ignore actual images (add them manually)
+screenshots/*.png
+screenshots/*.jpg
+screenshots/*.jpeg
+screenshots/*.gif
+!screenshots/.gitkeep
+
+# Ignore local notes
+notes.txt
+TODO.md
+NOTES.md
