@@ -115,12 +115,8 @@ site/
 workflows/*.backup.json
 workflows/*-old.json
 
-# Keep screenshots folder but ignore actual images (add them manually)
-screenshots/*.png
-screenshots/*.jpg
-screenshots/*.jpeg
-screenshots/*.gif
-!screenshots/.gitkeep
+# Screenshots are included in the repo
+# (Removed gitignore for screenshots to include them)
 
 # Ignore local notes
 notes.txt
