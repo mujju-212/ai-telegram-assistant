@@ -266,7 +266,9 @@ MIT License - feel free to use and modify!
 
 ## 👨‍💻 Author
 
-Created with ❤️ using:
+**Created by:** [mujju-212](https://github.com/mujju-212)
+
+Built with ❤️ using:
 
 - **n8n** - Workflow Automation
 - **DeepSeek AI** - Natural Language Processing
@@ -286,8 +288,8 @@ Created with ❤️ using:
 
 ## 📞 Support
 
-- 📧 Email: your@email.com
-- 💬 Telegram: @yourusername
+- 📧 Email: mujju786492@gmail.com
+- 💬 GitHub: [@mujju-212](https://github.com/mujju-212)
 - 🐛 Issues: [GitHub Issues](https://github.com/mujju-212/ai-telegram-assistant/issues)
 
 ---
