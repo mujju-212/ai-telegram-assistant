@@ -44,7 +44,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "googleCalendarOAuth2Api": {
-          "id": "t65YfZxlyg9KLgVk",
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
           "name": "Google Calendar account"
         }
       },
@@ -111,7 +111,7 @@
     },
     {
       "parameters": {
-        "chatId": "5162622954",
+        "chatId": "YOUR_CHAT_ID",
         "text": "={{ $json.formatted_message }}",
         "additionalFields": {}
       },
@@ -126,7 +126,7 @@
       "webhookId": "db206f06-3535-498c-9c8b-3aa13cfdaa6b",
       "credentials": {
         "telegramApi": {
-          "id": "YUeHZRoT1FNhknSe",
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
           "name": "Telegram account"
         }
       }

@@ -13,7 +13,7 @@
       "position": [240, 400],
       "credentials": {
         "telegramApi": {
-          "id": "YUeHZRoT1FNhknSe",
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
           "name": "Telegram account"
         }
       }
@@ -49,7 +49,7 @@
             },
             {
               "name": "Authorization",
-              "value": "Bearer sk-401fbd42cf00493b8c28db07f3027460"
+              "value": "Bearer YOUR_DEEPSEEK_API_KEY"
             }
           ]
         },
@@ -104,7 +104,7 @@
       "position": [1340, 400],
       "credentials": {
         "telegramApi": {
-          "id": "YUeHZRoT1FNhknSe",
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
           "name": "Telegram account"
         }
       }
@@ -198,7 +198,7 @@
         "databaseId": {
           "__rl": true,
           "mode": "id",
-          "value": "2c40d73ab97b8018ae73f28e20099d86"
+          "value": "YOUR_NOTION_DATABASE_ID"
         },
         "title": "={{ $json.task_name }}",
         "propertiesUi": {
@@ -279,7 +279,7 @@
       "position": [2880, 200],
       "credentials": {
         "telegramApi": {
-          "id": "YUeHZRoT1FNhknSe",
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
           "name": "Telegram account"
         }
       }
